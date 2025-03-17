@@ -15,6 +15,9 @@ func Run() error {
 	createCmd := flag.NewFlagSet("create", flag.ExitOnError)
 	createFile := createCmd.String("f", "", "Path to the YAML file with container definitions")
 
+	startCmd := flag.NewFlagSet("start", flag.ExitOnError)
+	startFile := startCmd.String("f", "", "Path to the YAML file with container definitions")
+
 	destroyCmd := flag.NewFlagSet("destroy", flag.ExitOnError)
 	destroyFile := destroyCmd.String("f", "", "Path to the YAML file with container definitions")
 
@@ -36,6 +39,13 @@ func Run() error {
 			return fmt.Errorf("missing file parameter")
 		}
 		return createContainers(*createFile)
+	case "start":
+		startCmd.Parse(os.Args[2:])
+		if *startFile == "" {
+			startCmd.PrintDefaults()
+			return fmt.Errorf("missing file parameter")
+		}
+		return startContainers(*startFile)
 	case "destroy":
 		destroyCmd.Parse(os.Args[2:])
 		if *destroyFile == "" {
@@ -67,6 +77,27 @@ func createContainers(filePath string) error {
 			fmt.Printf("Error creating container %s: %v\n", container.Name, err)
 		} else {
 			fmt.Printf("Container %s created successfully\n", container.Name)
+		}
+	}
+
+	return nil
+}
+
+func startContainers(filePath string) error {
+	fmt.Printf("Starting containers from %s\n", filePath)
+
+	// Parse the YAML file
+	containers, err := parser.ParseFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to parse YAML file: %w", err)
+	}
+
+	// Start containers
+	for _, container := range containers {
+		if err := lxc.StartContainer(container); err != nil {
+			fmt.Printf("Error starting container %s: %v\n", container.Name, err)
+		} else {
+			fmt.Printf("Container %s started successfully\n", container.Name)
 		}
 	}
 
