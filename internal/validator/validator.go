@@ -6,6 +6,7 @@ import (
 	"github.com/zinrai/declxc/pkg/models"
 )
 
+// Slice of container definitions
 func ValidateContainers(containers []models.Container) error {
 	if len(containers) == 0 {
 		return fmt.Errorf("no container definitions found")
@@ -35,12 +36,12 @@ func ValidateContainers(containers []models.Container) error {
 		nameSet[container.Name] = true
 
 		// Validate network configuration if provided
-		if container.Network != nil {
-			if container.Network.Type == "" {
-				return fmt.Errorf("network type is required for container %s", container.Name)
+		for i, network := range container.Networks {
+			if network.Type == "" {
+				return fmt.Errorf("network type is required for network %d in container %s", i, container.Name)
 			}
-			if container.Network.Interface == "" {
-				return fmt.Errorf("network interface is required for container %s", container.Name)
+			if network.Interface == "" {
+				return fmt.Errorf("network interface is required for network %d in container %s", i, container.Name)
 			}
 		}
 	}

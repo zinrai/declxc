@@ -9,7 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// YAML file containing container definitions
+// Reads and parses a YAML file containing container definitions
 func ParseFile(filePath string) ([]models.Container, error) {
 	// Check if file exists
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {

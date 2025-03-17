@@ -31,7 +31,7 @@ func CreateContainer(container models.Container) error {
 	}
 
 	// Configure network if specified
-	if container.Network != nil {
+	if len(container.Networks) > 0 {
 		if err := configureNetwork(container); err != nil {
 			return fmt.Errorf("failed to configure network: %w", err)
 		}
@@ -53,61 +53,49 @@ func DestroyContainer(container models.Container) error {
 	return nil
 }
 
-// Container's network configuration
+// Writes network configuration to a separate file and includes it in the main config
 func configureNetwork(container models.Container) error {
-	configPath := filepath.Join("/var/lib/lxc", container.Name, "config")
+	// Network config file path
+	containerPath := filepath.Join("/var/lib/lxc", container.Name)
+	networkConfigPath := filepath.Join(containerPath, "config-network")
+	mainConfigPath := filepath.Join(containerPath, "config")
 
-	// Read the current config file
-	content, err := os.ReadFile(configPath)
+	// Create network config content
+	var networkContent strings.Builder
+	networkContent.WriteString("# Network configuration added by declxc\n")
+
+	// Support multiple network interfaces
+	for i, network := range container.Networks {
+		networkContent.WriteString(fmt.Sprintf(`
+lxc.net.%d.type = %s
+lxc.net.%d.link = %s
+lxc.net.%d.flags = up
+`, i, network.Type, i, network.Interface, i))
+	}
+
+	// Write network config to file
+	if err := os.WriteFile(networkConfigPath, []byte(networkContent.String()), 0644); err != nil {
+		return fmt.Errorf("failed to write network config: %w", err)
+	}
+
+	// Update main config file to include network config
+	mainContent, err := os.ReadFile(mainConfigPath)
 	if err != nil {
 		return fmt.Errorf("failed to read container config: %w", err)
 	}
 
-	// Prepare network configuration
-	networkConfig := fmt.Sprintf(`
-# Network configuration added by declxc
-lxc.net.0.type = %s
-lxc.net.0.link = %s
-lxc.net.0.flags = up
-`, container.Network.Type, container.Network.Interface)
+	// Check if include line already exists
+	includeLine := fmt.Sprintf("lxc.include = %s", networkConfigPath)
+	if strings.Contains(string(mainContent), includeLine) {
+		// Already configured, nothing to do
+		return nil
+	}
 
-	// Check if network config already exists
-	if strings.Contains(string(content), "lxc.net.0.type") {
-		// Replace existing network config
-		lines := strings.Split(string(content), "\n")
-		var newLines []string
-		skipNetwork := false
+	// Add include line to main config
+	updatedContent := string(mainContent) + "\n" + "# Network configuration include\n" + includeLine + "\n"
 
-		for _, line := range lines {
-			if strings.HasPrefix(line, "lxc.net.0.") {
-				skipNetwork = true
-				continue
-			} else if skipNetwork && len(line) == 0 {
-				skipNetwork = false
-				continue
-			}
-
-			if !skipNetwork {
-				newLines = append(newLines, line)
-			}
-		}
-
-		// Append our network config
-		newContent := strings.Join(newLines, "\n") + networkConfig
-		if err := os.WriteFile(configPath, []byte(newContent), 0644); err != nil {
-			return fmt.Errorf("failed to update container config: %w", err)
-		}
-	} else {
-		// Append network config to the file
-		f, err := os.OpenFile(configPath, os.O_APPEND|os.O_WRONLY, 0644)
-		if err != nil {
-			return fmt.Errorf("failed to open container config: %w", err)
-		}
-		defer f.Close()
-
-		if _, err := f.WriteString(networkConfig); err != nil {
-			return fmt.Errorf("failed to write network config: %w", err)
-		}
+	if err := os.WriteFile(mainConfigPath, []byte(updatedContent), 0644); err != nil {
+		return fmt.Errorf("failed to update container config: %w", err)
 	}
 
 	return nil
