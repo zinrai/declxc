@@ -11,8 +11,10 @@ type Container struct {
 
 // Network configuration for an LXC container
 type NetworkConfig struct {
-	Type      string `yaml:"type"`
-	Interface string `yaml:"interface"`
+	Type        string `yaml:"type"`
+	Interface   string `yaml:"interface"`
+	IPv4Address string `yaml:"ipv4_address,omitempty"`
+	IPv4Gateway string `yaml:"ipv4_gateway,omitempty"`
 }
 
 // Complete YAML configuration

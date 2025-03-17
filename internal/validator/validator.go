@@ -2,6 +2,7 @@ package validator
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/zinrai/declxc/pkg/models"
 )
@@ -42,6 +43,11 @@ func ValidateContainers(containers []models.Container) error {
 			}
 			if network.Interface == "" {
 				return fmt.Errorf("network interface is required for network %d in container %s", i, container.Name)
+			}
+
+			// Very basic validation for IPv4 address format if provided
+			if network.IPv4Address != "" && !strings.Contains(network.IPv4Address, "/") {
+				return fmt.Errorf("invalid IPv4 address format for network %d in container %s, should include CIDR notation (e.g. 192.168.2.10/24)", i, container.Name)
 			}
 		}
 	}

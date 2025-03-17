@@ -148,6 +148,16 @@ lxc.net.%d.type = %s
 lxc.net.%d.link = %s
 lxc.net.%d.flags = up
 `, i, network.Type, i, network.Interface, i))
+
+		// Add IPv4 address if provided
+		if network.IPv4Address != "" {
+			networkContent.WriteString(fmt.Sprintf("lxc.net.%d.ipv4.address = %s\n", i, network.IPv4Address))
+		}
+
+		// Add IPv4 gateway if provided
+		if network.IPv4Gateway != "" {
+			networkContent.WriteString(fmt.Sprintf("lxc.net.%d.ipv4.gateway = %s\n", i, network.IPv4Gateway))
+		}
 	}
 
 	// Write network config to file
