@@ -12,25 +12,38 @@ import (
 
 // LXC container using the provided configuration
 func CreateContainer(container models.Container) error {
-	// Build the lxc-create command
-	args := []string{
-		"-n", container.Name,
-		"-t", container.Template,
-		"--",
-		"-r", container.Release,
-		"-a", container.Arch,
+	// Check if the container already exists
+	exists, err := containerExists(container.Name)
+	if err != nil {
+		return fmt.Errorf("failed to check if container exists: %w", err)
 	}
 
-	cmd := exec.Command("lxc-create", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	//  Create container only if it does not exist
+	if !exists {
+		// Build the lxc-create command
+		args := []string{
+			"-n", container.Name,
+			"-t", container.Template,
+			"--",
+			"-r", container.Release,
+			"-a", container.Arch,
+		}
 
-	// Execute the command
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to create container: %w", err)
+		cmd := exec.Command("lxc-create", args...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		// Execute the command
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to create container: %w", err)
+		}
+
+		fmt.Printf("Container %s created successfully\n", container.Name)
+	} else {
+		fmt.Printf("Container %s already exists, skipping creation\n", container.Name)
 	}
 
-	// Configure network if specified
+	// Configure network regardless of whether container was just created or already existed
 	if len(container.Networks) > 0 {
 		if err := configureNetwork(container); err != nil {
 			return fmt.Errorf("failed to configure network: %w", err)
@@ -38,6 +51,23 @@ func CreateContainer(container models.Container) error {
 	}
 
 	return nil
+}
+
+func containerExists(name string) (bool, error) {
+	cmd := exec.Command("lxc-ls", "-1")
+	output, err := cmd.Output()
+	if err != nil {
+		return false, fmt.Errorf("failed to list containers: %w", err)
+	}
+
+	containers := strings.Split(string(output), "\n")
+	for _, c := range containers {
+		if c == name {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 // Destroys an LXC container
