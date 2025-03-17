@@ -94,6 +94,29 @@ func StartContainer(container models.Container) error {
 	return nil
 }
 
+func StopContainer(container models.Container) error {
+	// Check if container exists
+	exists, err := containerExists(container.Name)
+	if err != nil {
+		return fmt.Errorf("failed to check if container exists: %w", err)
+	}
+
+	if !exists {
+		return fmt.Errorf("container %s does not exist", container.Name)
+	}
+
+	// Execute lxc-stop command
+	cmd := exec.Command("lxc-stop", "-n", container.Name)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to stop container: %w", err)
+	}
+
+	return nil
+}
+
 // Destroys an LXC container
 func DestroyContainer(container models.Container) error {
 	cmd := exec.Command("lxc-destroy", "-n", container.Name, "-f")
