@@ -1,0 +1,26 @@
+containers:
+  - name: webserver
+    template: debian
+    release: bookworm
+    arch: amd64
+    networks:
+      - type: veth
+        interface: lxcbr0
+        ipv4_address: 192.168.2.10/24
+        ipv4_gateway: 192.168.2.1
+
+  - name: database
+    template: debian
+    release: bookworm
+    arch: amd64
+    networks:
+      - type: veth
+        interface: lxcbr0
+
+  - name: loadbalancer
+    template: debian
+    release: bookworm
+    arch: amd64
+    networks:
+      - type: veth
+        interface: lxcbr0
