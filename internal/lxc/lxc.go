@@ -10,7 +10,7 @@ import (
 	"github.com/zinrai/declxc/pkg/models"
 )
 
-// LXC container using the provided configuration
+// CreateContainer creates an LXC container using the provided configuration
 func CreateContainer(container models.Container) error {
 	// Check if the container already exists
 	exists, err := containerExists(container.Name)
@@ -50,6 +50,13 @@ func CreateContainer(container models.Container) error {
 		}
 	}
 
+	// Configure users if defined
+	if len(container.Users) > 0 {
+		if err := configureUsers(container); err != nil {
+			return fmt.Errorf("failed to configure users: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -70,7 +77,7 @@ func containerExists(name string) (bool, error) {
 	return false, nil
 }
 
-// Starts an LXC container
+// StartContainer starts an LXC container
 func StartContainer(container models.Container) error {
 	// Check if container exists
 	exists, err := containerExists(container.Name)
@@ -94,6 +101,7 @@ func StartContainer(container models.Container) error {
 	return nil
 }
 
+// StopContainer stops an LXC container
 func StopContainer(container models.Container) error {
 	// Check if container exists
 	exists, err := containerExists(container.Name)
@@ -117,7 +125,7 @@ func StopContainer(container models.Container) error {
 	return nil
 }
 
-// Destroys an LXC container
+// DestroyContainer destroys an LXC container
 func DestroyContainer(container models.Container) error {
 	cmd := exec.Command("lxc-destroy", "-n", container.Name, "-f")
 	cmd.Stdout = os.Stdout
@@ -130,7 +138,7 @@ func DestroyContainer(container models.Container) error {
 	return nil
 }
 
-// Writes network configuration to a separate file and includes it in the main config
+// configureNetwork writes network configuration to a separate file and includes it in the main config
 func configureNetwork(container models.Container) error {
 	// Network config file path
 	containerPath := filepath.Join("/var/lib/lxc", container.Name)
@@ -183,6 +191,58 @@ lxc.net.%d.flags = up
 
 	if err := os.WriteFile(mainConfigPath, []byte(updatedContent), 0644); err != nil {
 		return fmt.Errorf("failed to update container config: %w", err)
+	}
+
+	return nil
+}
+
+// configureUsers creates user accounts in the container using chroot
+func configureUsers(container models.Container) error {
+	rootfs := filepath.Join("/var/lib/lxc", container.Name, "rootfs")
+
+	// Check if rootfs exists
+	if _, err := os.Stat(rootfs); os.IsNotExist(err) {
+		return fmt.Errorf("container rootfs does not exist: %s", rootfs)
+	}
+
+	for _, user := range container.Users {
+		fmt.Printf("Creating user %s in container %s\n", user.Username, container.Name)
+
+		// Check if user already exists
+		checkCmd := exec.Command("chroot", rootfs, "id", user.Username)
+		if err := checkCmd.Run(); err == nil {
+			fmt.Printf("User %s already exists in container %s, skipping\n", user.Username, container.Name)
+			continue
+		}
+
+		// Determine shell
+		shell := user.Shell
+		if shell == "" {
+			shell = "/bin/bash"
+		}
+
+		// Create user with useradd
+		useraddCmd := exec.Command("chroot", rootfs, "useradd", "-m", "-s", shell, user.Username)
+		useraddCmd.Stdout = os.Stdout
+		useraddCmd.Stderr = os.Stderr
+
+		if err := useraddCmd.Run(); err != nil {
+			fmt.Printf("Failed to create user %s in container %s: %v\n", user.Username, container.Name, err)
+			continue
+		}
+
+		// Set password using chpasswd
+		chpasswdCmd := exec.Command("chroot", rootfs, "chpasswd")
+		chpasswdCmd.Stdin = strings.NewReader(fmt.Sprintf("%s:%s", user.Username, user.Password))
+		chpasswdCmd.Stdout = os.Stdout
+		chpasswdCmd.Stderr = os.Stderr
+
+		if err := chpasswdCmd.Run(); err != nil {
+			fmt.Printf("Failed to set password for user %s in container %s: %v\n", user.Username, container.Name, err)
+			continue
+		}
+
+		fmt.Printf("User %s created successfully in container %s\n", user.Username, container.Name)
 	}
 
 	return nil

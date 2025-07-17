@@ -7,7 +7,7 @@ import (
 	"github.com/zinrai/declxc/pkg/models"
 )
 
-// Slice of container definitions
+// ValidateContainers validates a slice of container definitions
 func ValidateContainers(containers []models.Container) error {
 	if len(containers) == 0 {
 		return fmt.Errorf("no container definitions found")
@@ -48,6 +48,25 @@ func ValidateContainers(containers []models.Container) error {
 			// Very basic validation for IPv4 address format if provided
 			if network.IPv4Address != "" && !strings.Contains(network.IPv4Address, "/") {
 				return fmt.Errorf("invalid IPv4 address format for network %d in container %s, should include CIDR notation (e.g. 192.168.2.10/24)", i, container.Name)
+			}
+		}
+
+		// Validate user configuration if provided
+		if len(container.Users) > 0 {
+			userSet := make(map[string]bool)
+			for i, user := range container.Users {
+				if user.Username == "" {
+					return fmt.Errorf("username is required for user %d in container %s", i, container.Name)
+				}
+				if user.Password == "" {
+					return fmt.Errorf("password is required for user %s in container %s", user.Username, container.Name)
+				}
+
+				// Check for duplicate usernames within the same container
+				if userSet[user.Username] {
+					return fmt.Errorf("duplicate username %s in container %s", user.Username, container.Name)
+				}
+				userSet[user.Username] = true
 			}
 		}
 	}

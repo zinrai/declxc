@@ -8,6 +8,12 @@ containers:
         interface: lxcbr0
         ipv4_address: 192.168.2.10/24
         ipv4_gateway: 192.168.2.1
+    users:
+      - username: developer
+        password: dev123456
+        shell: /bin/bash
+      - username: tester
+        password: test123456
 
   - name: database
     template: debian
@@ -16,6 +22,10 @@ containers:
     networks:
       - type: veth
         interface: lxcbr0
+    users:
+      - username: dbadmin
+        password: db123456
+        shell: /bin/bash
 
   - name: loadbalancer
     template: debian
@@ -24,3 +34,6 @@ containers:
     networks:
       - type: veth
         interface: lxcbr0
+    users:
+      - username: admin
+        password: admin123456
