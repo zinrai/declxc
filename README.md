@@ -11,6 +11,7 @@ A declarative CLI tool for managing LXC containers using YAML configuration.
 - Declarative container configuration using YAML
 - Bulk operations on multiple containers
 - Network configuration support
+- Debian package installation during container setup
 - User account creation during container setup
 - SSH public key deployment for users
 - Idempotent operations (safe to run multiple times)
@@ -70,6 +71,7 @@ Create a YAML file to define your containers. Example: `examples/container.yaml`
 | release  | Release version (e.g., focal, bullseye) | Yes      |
 | arch     | Architecture (e.g., amd64, arm64)       | Yes      |
 | networks | Network configuration (array)           | No       |
+| packages | Debian packages to install (array)      | No       |
 | users    | User account configuration (array)      | No       |
 
 ### Network Settings
@@ -82,6 +84,20 @@ Use [zinrai/netshed](https://github.com/zinrai/netshed) , etc. to create bridge 
 | interface    | Host interface to connect to    | Yes      |
 | ipv4_address | IPv4 address with CIDR notation | No       |
 | ipv4_gateway | IPv4 gateway address            | No       |
+
+### Package Settings
+
+Debian packages can be automatically installed during container creation.
+
+```yaml
+packages:
+  - nginx
+  - vim
+  - git
+  - curl
+```
+
+The packages are installed using `apt-get` after the container is created but before users are configured.
 
 ### User Settings
 
@@ -104,8 +120,16 @@ User accounts can be automatically created during container setup.
 
 1. **Container creation**: Uses `lxc-create` to create the container
 2. **Network configuration**: Writes network settings to a separate config file
-3. **User creation**: Creates user accounts using `chroot` and system commands
-4. **SSH key deployment**: Copies SSH public keys to user's `~/.ssh/authorized_keys`
+3. **Package installation**: Installs Debian packages using `apt-get`
+4. **User creation**: Creates user accounts using `chroot` and system commands
+5. **SSH key deployment**: Copies SSH public keys to user's `~/.ssh/authorized_keys`
+
+### Package Installation
+
+- Packages are installed after network configuration but before user creation
+- Uses `chroot` to execute `apt-get update` and `apt-get install` in the container
+- Runs with `DEBIAN_FRONTEND=noninteractive` to avoid interactive prompts
+- If package installation fails, the entire container creation process stops
 
 ### User Account Creation
 
@@ -132,6 +156,10 @@ project/
 │   └── tester.pub
 └── README.md
 ```
+
+## Example Configuration
+
+See `examples/container.yaml` for a complete configuration example including network settings, package installation, user creation, and SSH key deployment.
 
 ## Important Notes
 

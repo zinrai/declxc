@@ -15,6 +15,7 @@ type Container struct {
 	Release  string          `yaml:"release"`
 	Arch     string          `yaml:"arch"`
 	Networks []NetworkConfig `yaml:"networks,omitempty"`
+	Packages []string        `yaml:"packages,omitempty"`
 	Users    []User          `yaml:"users,omitempty"`
 }
 

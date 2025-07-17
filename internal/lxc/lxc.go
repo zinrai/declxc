@@ -50,6 +50,13 @@ func CreateContainer(container models.Container) error {
 		}
 	}
 
+	// Install packages if defined
+	if len(container.Packages) > 0 {
+		if err := configurePackages(container); err != nil {
+			return fmt.Errorf("failed to install packages: %w", err)
+		}
+	}
+
 	// Configure users if defined
 	if len(container.Users) > 0 {
 		if err := configureUsers(container); err != nil {
@@ -316,5 +323,43 @@ func configureSSHKeys(containerName string, user models.User, rootfs string) err
 	}
 
 	fmt.Printf("SSH keys configured successfully for user %s in container %s\n", user.Username, containerName)
+	return nil
+}
+
+// configurePackages installs Debian packages in the container using chroot
+func configurePackages(container models.Container) error {
+	rootfs := filepath.Join("/var/lib/lxc", container.Name, "rootfs")
+
+	// Check if rootfs exists
+	if _, err := os.Stat(rootfs); os.IsNotExist(err) {
+		return fmt.Errorf("container rootfs does not exist: %s", rootfs)
+	}
+
+	fmt.Printf("Installing packages in container %s\n", container.Name)
+
+	// Update package list
+	fmt.Println("Updating package list...")
+	updateCmd := exec.Command("chroot", rootfs, "apt-get", "update")
+	updateCmd.Stdout = os.Stdout
+	updateCmd.Stderr = os.Stderr
+
+	if err := updateCmd.Run(); err != nil {
+		return fmt.Errorf("apt-get update failed: %w", err)
+	}
+
+	// Install packages
+	fmt.Printf("Installing packages: %s\n", strings.Join(container.Packages, " "))
+	installArgs := []string{rootfs, "env", "DEBIAN_FRONTEND=noninteractive", "apt-get", "install", "-y"}
+	installArgs = append(installArgs, container.Packages...)
+
+	installCmd := exec.Command("chroot", installArgs...)
+	installCmd.Stdout = os.Stdout
+	installCmd.Stderr = os.Stderr
+
+	if err := installCmd.Run(); err != nil {
+		return fmt.Errorf("package installation failed: %w", err)
+	}
+
+	fmt.Printf("Packages installed successfully in container %s\n", container.Name)
 	return nil
 }
