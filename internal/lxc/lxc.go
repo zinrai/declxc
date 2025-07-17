@@ -212,6 +212,28 @@ func configureUsers(container models.Container) error {
 		return fmt.Errorf("container rootfs does not exist: %s", rootfs)
 	}
 
+	// Check if any user requires sudo
+	needsSudo := false
+	for _, user := range container.Users {
+		if user.Sudo {
+			needsSudo = true
+			break
+		}
+	}
+
+	// Install sudo package if needed
+	if needsSudo {
+		fmt.Printf("Installing sudo package in container %s\n", container.Name)
+		installCmd := exec.Command("chroot", rootfs, "env", "DEBIAN_FRONTEND=noninteractive",
+			"apt-get", "install", "-y", "sudo")
+		installCmd.Stdout = os.Stdout
+		installCmd.Stderr = os.Stderr
+
+		if err := installCmd.Run(); err != nil {
+			return fmt.Errorf("failed to install sudo package: %w", err)
+		}
+	}
+
 	for _, user := range container.Users {
 		fmt.Printf("Creating user %s in container %s\n", user.Username, container.Name)
 
@@ -251,6 +273,13 @@ func configureUsers(container models.Container) error {
 
 		fmt.Printf("User %s created successfully in container %s\n", user.Username, container.Name)
 
+		// Configure sudo if requested
+		if user.Sudo {
+			if err := configureSudo(container.Name, user, rootfs); err != nil {
+				fmt.Printf("Failed to configure sudo for user %s: %v\n", user.Username, err)
+			}
+		}
+
 		// Configure SSH keys if specified
 		if len(user.SSHKeyFiles) > 0 {
 			if err := configureSSHKeys(container.Name, user, rootfs); err != nil {
@@ -259,6 +288,33 @@ func configureUsers(container models.Container) error {
 		}
 	}
 
+	return nil
+}
+
+// configureSudo sets up sudo privileges for a user
+func configureSudo(containerName string, user models.User, rootfs string) error {
+	if !user.Sudo {
+		return nil
+	}
+
+	// Create sudoers file content
+	sudoersContent := fmt.Sprintf("%s ALL=(ALL:ALL) NOPASSWD:ALL\n", user.Username)
+
+	// Write to sudoers.d directory
+	sudoersFile := filepath.Join("/etc/sudoers.d", user.Username)
+	writeCmd := exec.Command("chroot", rootfs, "tee", sudoersFile)
+	writeCmd.Stdin = strings.NewReader(sudoersContent)
+	if err := writeCmd.Run(); err != nil {
+		return fmt.Errorf("failed to write sudoers file: %w", err)
+	}
+
+	// Set proper permissions (440)
+	chmodCmd := exec.Command("chroot", rootfs, "chmod", "440", sudoersFile)
+	if err := chmodCmd.Run(); err != nil {
+		return fmt.Errorf("failed to set sudoers file permissions: %w", err)
+	}
+
+	fmt.Printf("Sudo privileges granted to user %s in container %s (NOPASSWD)\n", user.Username, containerName)
 	return nil
 }
 

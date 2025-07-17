@@ -13,11 +13,11 @@ containers:
       - vim
       - git
       - curl
-      - sudo
     users:
       - username: developer
         password: dev123456
         shell: /bin/bash
+        sudo: true
         ssh_key_files:
           - keys/developer.pub
           - keys/admin.pub
@@ -38,6 +38,7 @@ containers:
       - username: dbadmin
         password: db123456
         shell: /bin/bash
+        sudo: true
         ssh_key_files:
           - keys/admin.pub
 
@@ -54,3 +55,4 @@ containers:
     users:
       - username: admin
         password: admin123456
+        sudo: true

@@ -5,6 +5,7 @@ type User struct {
 	Username    string   `yaml:"username"`
 	Password    string   `yaml:"password"`
 	Shell       string   `yaml:"shell,omitempty"`
+	Sudo        bool     `yaml:"sudo,omitempty"`
 	SSHKeyFiles []string `yaml:"ssh_key_files,omitempty"`
 }
 
