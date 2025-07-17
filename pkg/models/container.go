@@ -2,9 +2,10 @@ package models
 
 // User represents a user account configuration for an LXC container
 type User struct {
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
-	Shell    string `yaml:"shell,omitempty"`
+	Username    string   `yaml:"username"`
+	Password    string   `yaml:"password"`
+	Shell       string   `yaml:"shell,omitempty"`
+	SSHKeyFiles []string `yaml:"ssh_key_files,omitempty"`
 }
 
 // Container represents an LXC container configuration

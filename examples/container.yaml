@@ -12,6 +12,9 @@ containers:
       - username: developer
         password: dev123456
         shell: /bin/bash
+        ssh_key_files:
+          - keys/developer.pub
+          - keys/admin.pub
       - username: tester
         password: test123456
 
@@ -26,6 +29,8 @@ containers:
       - username: dbadmin
         password: db123456
         shell: /bin/bash
+        ssh_key_files:
+          - keys/admin.pub
 
   - name: loadbalancer
     template: debian

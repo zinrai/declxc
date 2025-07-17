@@ -12,6 +12,7 @@ A declarative CLI tool for managing LXC containers using YAML configuration.
 - Bulk operations on multiple containers
 - Network configuration support
 - User account creation during container setup
+- SSH public key deployment for users
 - Idempotent operations (safe to run multiple times)
 
 ## Requirements
@@ -86,11 +87,14 @@ Use [zinrai/netshed](https://github.com/zinrai/netshed) , etc. to create bridge 
 
 User accounts can be automatically created during container setup.
 
-| Option   | Description                           | Required |
-|----------|---------------------------------------|----------|
-| username | Username for the account              | Yes      |
-| password | Password for the account              | Yes      |
-| shell    | Login shell (default: /bin/bash)      | No       |
+| Option         | Description                                   | Required |
+|----------------|-----------------------------------------------|----------|
+| username       | Username for the account                      | Yes      |
+| password       | Password for the account                      | Yes      |
+| shell          | Login shell (default: /bin/bash)              | No       |
+| ssh_key_files  | List of SSH public key file paths             | No       |
+
+**SSH Key Files**: Paths are relative to the YAML file location. Store your SSH public keys in a `keys/` directory alongside your YAML configuration.
 
 **Security Warning**: Passwords are stored in plain text in the YAML file. This tool is intended for development environments only. Do not use in production.
 
@@ -101,6 +105,7 @@ User accounts can be automatically created during container setup.
 1. **Container creation**: Uses `lxc-create` to create the container
 2. **Network configuration**: Writes network settings to a separate config file
 3. **User creation**: Creates user accounts using `chroot` and system commands
+4. **SSH key deployment**: Copies SSH public keys to user's `~/.ssh/authorized_keys`
 
 ### User Account Creation
 
@@ -109,11 +114,31 @@ User accounts can be automatically created during container setup.
 - Existing users are skipped (idempotent operation)
 - Each user gets a home directory automatically created
 
+### SSH Key Deployment
+
+- SSH public key files are read from paths specified in the YAML configuration
+- Keys are installed to `~/.ssh/authorized_keys` with proper permissions (700 for directory, 600 for file)
+- File paths are resolved relative to the YAML file location
+- Missing key files generate warnings but don't stop the process
+
+## File Structure Example
+
+```
+project/
+├── containers.yaml
+├── keys/
+│   ├── developer.pub
+│   ├── admin.pub
+│   └── tester.pub
+└── README.md
+```
+
 ## Important Notes
 
 - **Development Use Only**: This tool stores passwords in plain text and is intended for development environments only
 - **Root Privileges**: Requires sudo/root access to manage LXC containers
 - **Idempotent Operations**: Safe to run create command multiple times - existing containers and users are skipped
+- **SSH Server**: Containers must have SSH server installed and configured for SSH key authentication to work
 
 ## License
 

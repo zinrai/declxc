@@ -243,7 +243,78 @@ func configureUsers(container models.Container) error {
 		}
 
 		fmt.Printf("User %s created successfully in container %s\n", user.Username, container.Name)
+
+		// Configure SSH keys if specified
+		if len(user.SSHKeyFiles) > 0 {
+			if err := configureSSHKeys(container.Name, user, rootfs); err != nil {
+				fmt.Printf("Failed to configure SSH keys for user %s: %v\n", user.Username, err)
+			}
+		}
 	}
 
+	return nil
+}
+
+// configureSSHKeys sets up SSH public keys for a user
+func configureSSHKeys(containerName string, user models.User, rootfs string) error {
+	sshDir := fmt.Sprintf("/home/%s/.ssh", user.Username)
+	authorizedKeysPath := fmt.Sprintf("%s/authorized_keys", sshDir)
+
+	// Create .ssh directory
+	mkdirCmd := exec.Command("chroot", rootfs, "mkdir", sshDir)
+	if err := mkdirCmd.Run(); err != nil {
+		return fmt.Errorf("failed to create .ssh directory: %w", err)
+	}
+
+	// Collect all SSH keys
+	var allKeys []string
+	for _, keyFile := range user.SSHKeyFiles {
+		// Read SSH public key file
+		keyContent, err := os.ReadFile(keyFile)
+		if err != nil {
+			fmt.Printf("Warning: Failed to read SSH key file %s: %v\n", keyFile, err)
+			continue
+		}
+
+		// Trim whitespace and add to collection
+		key := strings.TrimSpace(string(keyContent))
+		if key != "" {
+			allKeys = append(allKeys, key)
+		}
+	}
+
+	// If no keys were successfully read, return
+	if len(allKeys) == 0 {
+		fmt.Printf("Warning: No SSH keys were successfully read for user %s\n", user.Username)
+		return nil
+	}
+
+	// Write all keys to authorized_keys
+	authorizedKeysContent := strings.Join(allKeys, "\n") + "\n"
+	teeCmd := exec.Command("chroot", rootfs, "tee", authorizedKeysPath)
+	teeCmd.Stdin = strings.NewReader(authorizedKeysContent)
+	if err := teeCmd.Run(); err != nil {
+		return fmt.Errorf("failed to write authorized_keys: %w", err)
+	}
+
+	// Set permissions for .ssh directory
+	chmodDirCmd := exec.Command("chroot", rootfs, "chmod", "700", sshDir)
+	if err := chmodDirCmd.Run(); err != nil {
+		return fmt.Errorf("failed to set permissions for .ssh directory: %w", err)
+	}
+
+	// Set permissions for authorized_keys
+	chmodKeysCmd := exec.Command("chroot", rootfs, "chmod", "600", authorizedKeysPath)
+	if err := chmodKeysCmd.Run(); err != nil {
+		return fmt.Errorf("failed to set permissions for authorized_keys: %w", err)
+	}
+
+	// Set ownership
+	chownCmd := exec.Command("chroot", rootfs, "chown", "-R", fmt.Sprintf("%s:%s", user.Username, user.Username), sshDir)
+	if err := chownCmd.Run(); err != nil {
+		return fmt.Errorf("failed to set ownership for .ssh directory: %w", err)
+	}
+
+	fmt.Printf("SSH keys configured successfully for user %s in container %s\n", user.Username, containerName)
 	return nil
 }
