@@ -31,10 +31,8 @@ func run() error {
 
 	// Check if a subcommand is provided
 	if len(os.Args) < 2 {
-		fmt.Println("Expected 'create' or 'destroy' subcommand")
-		fmt.Println("Usage:")
-		fmt.Println("  declxc create -f <yaml-file>")
-		fmt.Println("  declxc destroy -f <yaml-file>")
+		fmt.Println("Expected a subcommand")
+		printUsage()
 		return fmt.Errorf("missing subcommand")
 	}
 
@@ -68,13 +66,24 @@ func run() error {
 			return fmt.Errorf("missing file parameter")
 		}
 		return destroyContainers(*destroyFile)
+	case "version":
+		printVersion()
+		return nil
 	default:
 		fmt.Printf("%q is not a valid subcommand.\n", os.Args[1])
-		fmt.Println("Usage:")
-		fmt.Println("  declxc create -f <yaml-file>")
-		fmt.Println("  declxc destroy -f <yaml-file>")
+		printUsage()
 		return fmt.Errorf("invalid subcommand")
 	}
+}
+
+// printUsage writes the list of available subcommands to stdout.
+func printUsage() {
+	fmt.Println("Usage:")
+	fmt.Println("  declxc create  -f <yaml-file>")
+	fmt.Println("  declxc start   -f <yaml-file>")
+	fmt.Println("  declxc stop    -f <yaml-file>")
+	fmt.Println("  declxc destroy -f <yaml-file>")
+	fmt.Println("  declxc version")
 }
 
 func createContainers(filePath string) error {
