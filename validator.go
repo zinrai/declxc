@@ -62,12 +62,6 @@ func ValidateContainers(containers []Container) error {
 			}
 		}
 
-		// Validate package configuration if provided
-		for i, pkg := range container.Packages {
-			if pkg == "" {
-				return fmt.Errorf("empty package name at index %d in container %s", i, container.Name)
-			}
-		}
 	}
 
 	return nil

@@ -16,7 +16,6 @@ type Container struct {
 	// "-n <name>"). Whitespace-separated; no shell quoting is interpreted.
 	LXCCreateArgs string          `yaml:"lxc_create_args"`
 	Networks      []NetworkConfig `yaml:"networks,omitempty"`
-	Packages      []string        `yaml:"packages,omitempty"`
 	Users         []User          `yaml:"users,omitempty"`
 }
 
