@@ -11,13 +11,13 @@ type User struct {
 
 // Container represents an LXC container configuration
 type Container struct {
-	Name     string          `yaml:"name"`
-	Template string          `yaml:"template"`
-	Release  string          `yaml:"release"`
-	Arch     string          `yaml:"arch"`
-	Networks []NetworkConfig `yaml:"networks,omitempty"`
-	Packages []string        `yaml:"packages,omitempty"`
-	Users    []User          `yaml:"users,omitempty"`
+	Name string `yaml:"name"`
+	// LXCCreateArgs is passed verbatim to lxc-create (after the injected
+	// "-n <name>"). Whitespace-separated; no shell quoting is interpreted.
+	LXCCreateArgs string          `yaml:"lxc_create_args"`
+	Networks      []NetworkConfig `yaml:"networks,omitempty"`
+	Packages      []string        `yaml:"packages,omitempty"`
+	Users         []User          `yaml:"users,omitempty"`
 }
 
 // NetworkConfig represents network configuration for an LXC container

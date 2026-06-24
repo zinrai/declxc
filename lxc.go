@@ -18,14 +18,9 @@ func CreateContainer(container Container) error {
 
 	//  Create container only if it does not exist
 	if !exists {
-		// Build the lxc-create command
-		args := []string{
-			"-n", container.Name,
-			"-t", container.Template,
-			"--",
-			"-r", container.Release,
-			"-a", container.Arch,
-		}
+		// Build the lxc-create command: declxc injects "-n <name>" from the
+		// container name; the rest is passed through from lxc_create_args.
+		args := append([]string{"-n", container.Name}, strings.Fields(container.LXCCreateArgs)...)
 
 		cmd := exec.Command("lxc-create", args...)
 		cmd.Stdout = os.Stdout

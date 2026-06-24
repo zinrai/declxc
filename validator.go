@@ -18,14 +18,8 @@ func ValidateContainers(containers []Container) error {
 		if container.Name == "" {
 			return fmt.Errorf("container name is required")
 		}
-		if container.Template == "" {
-			return fmt.Errorf("container template is required")
-		}
-		if container.Release == "" {
-			return fmt.Errorf("container release is required")
-		}
-		if container.Arch == "" {
-			return fmt.Errorf("container architecture is required")
+		if strings.TrimSpace(container.LXCCreateArgs) == "" {
+			return fmt.Errorf("lxc_create_args is required for container %s", container.Name)
 		}
 
 		// Check for duplicate names

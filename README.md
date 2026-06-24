@@ -24,13 +24,7 @@ LXC tools installed on your system.
 Debian GNU/Linux:
 
 ```bash
-$ sudo apt install lxc
-```
-
-## Installation
-
-```bash
-$ go build -o declxc .
+$ sudo apt install lxc lxc-templates debootstrap
 ```
 
 ## Usage
@@ -65,15 +59,28 @@ Create a YAML file to define your containers. Example: `examples/container.yaml`
 
 ### Container Settings
 
-| Option   | Description                             | Required |
-|----------|-----------------------------------------|----------|
-| name     | Container name                          | Yes      |
-| template | Template to use (e.g., ubuntu, debian)  | Yes      |
-| release  | Release version (e.g., focal, bullseye) | Yes      |
-| arch     | Architecture (e.g., amd64, arm64)       | Yes      |
-| networks | Network configuration (array)           | No       |
-| packages | Debian packages to install (array)      | No       |
-| users    | User account configuration (array)      | No       |
+| Option          | Description                                   | Required |
+|-----------------|-----------------------------------------------|----------|
+| name            | Container name                                | Yes      |
+| lxc_create_args | Arguments passed verbatim to `lxc-create`     | Yes      |
+| networks        | Network configuration (array)                 | No       |
+| packages        | Debian packages to install (array)            | No       |
+| users           | User account configuration (array)            | No       |
+
+#### lxc_create_args
+
+The value is passed through to `lxc-create` unchanged. `declxc` injects `-n <name>` from the `name` field, so do not include `-n` here:
+
+```yaml
+lxc_create_args: -t debian -- -r bookworm -a amd64
+```
+
+This becomes `lxc-create -n <name> -t debian -- -r bookworm -a amd64`. Anything `lxc-create` and its template scripts accept can be expressed here (e.g. the `download` template's `-d <dist>`).
+
+Notes:
+
+- The string is split on whitespace. Shell quoting and escaping are **not** interpreted, so values containing spaces are unsupported.
+- `declxc` configures packages and users by `chroot`-ing into `/var/lib/lxc/<name>/rootfs`. Arguments that change the storage location or lxcpath (e.g. `-B`, `-P`) will break those steps.
 
 ### Network Settings
 
