@@ -1,17 +1,21 @@
-package cli
+package main
 
 import (
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/zinrai/declxc/internal/lxc"
-	"github.com/zinrai/declxc/internal/parser"
 )
 
-// Run initializes and runs the CLI application
-func Run() error {
+func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+// run initializes and runs the CLI application
+func run() error {
 	// Define command-line subcommands
 	createCmd := flag.NewFlagSet("create", flag.ExitOnError)
 	createFile := createCmd.String("f", "", "Path to the YAML file with container definitions")
@@ -77,7 +81,7 @@ func createContainers(filePath string) error {
 	fmt.Printf("Creating containers from %s\n", filePath)
 
 	// Parse the YAML file
-	containers, err := parser.ParseFile(filePath)
+	containers, err := ParseFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to parse YAML file: %w", err)
 	}
@@ -98,7 +102,7 @@ func createContainers(filePath string) error {
 
 	// Create containers
 	for _, container := range containers {
-		if err := lxc.CreateContainer(container); err != nil {
+		if err := CreateContainer(container); err != nil {
 			fmt.Printf("Error creating container %s: %v\n", container.Name, err)
 		} else {
 			fmt.Printf("Container %s created successfully\n", container.Name)
@@ -112,14 +116,14 @@ func startContainers(filePath string) error {
 	fmt.Printf("Starting containers from %s\n", filePath)
 
 	// Parse the YAML file
-	containers, err := parser.ParseFile(filePath)
+	containers, err := ParseFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to parse YAML file: %w", err)
 	}
 
 	// Start containers
 	for _, container := range containers {
-		if err := lxc.StartContainer(container); err != nil {
+		if err := StartContainer(container); err != nil {
 			fmt.Printf("Error starting container %s: %v\n", container.Name, err)
 		} else {
 			fmt.Printf("Container %s started successfully\n", container.Name)
@@ -133,14 +137,14 @@ func stopContainers(filePath string) error {
 	fmt.Printf("Stopping containers from %s\n", filePath)
 
 	// Parse the YAML file
-	containers, err := parser.ParseFile(filePath)
+	containers, err := ParseFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to parse YAML file: %w", err)
 	}
 
 	// Stop containers
 	for _, container := range containers {
-		if err := lxc.StopContainer(container); err != nil {
+		if err := StopContainer(container); err != nil {
 			fmt.Printf("Error stopping container %s: %v\n", container.Name, err)
 		} else {
 			fmt.Printf("Container %s stopped successfully\n", container.Name)
@@ -154,14 +158,14 @@ func destroyContainers(filePath string) error {
 	fmt.Printf("Destroying containers from %s\n", filePath)
 
 	// Parse the YAML file
-	containers, err := parser.ParseFile(filePath)
+	containers, err := ParseFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to parse YAML file: %w", err)
 	}
 
 	// Destroy containers
 	for _, container := range containers {
-		if err := lxc.DestroyContainer(container); err != nil {
+		if err := DestroyContainer(container); err != nil {
 			fmt.Printf("Error destroying container %s: %v\n", container.Name, err)
 		} else {
 			fmt.Printf("Container %s destroyed successfully\n", container.Name)

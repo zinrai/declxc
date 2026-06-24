@@ -30,7 +30,7 @@ $ sudo apt install lxc
 ## Installation
 
 ```bash
-$ go build -o declxc cmd/main.go
+$ go build -o declxc .
 ```
 
 ## Usage

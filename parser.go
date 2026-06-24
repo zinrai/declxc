@@ -1,16 +1,14 @@
-package parser
+package main
 
 import (
 	"fmt"
 	"os"
 
-	"github.com/zinrai/declxc/internal/validator"
-	"github.com/zinrai/declxc/pkg/models"
 	"gopkg.in/yaml.v3"
 )
 
-// Reads and parses a YAML file containing container definitions
-func ParseFile(filePath string) ([]models.Container, error) {
+// ParseFile reads and parses a YAML file containing container definitions
+func ParseFile(filePath string) ([]Container, error) {
 	// Check if file exists
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("file %s does not exist", filePath)
@@ -23,13 +21,13 @@ func ParseFile(filePath string) ([]models.Container, error) {
 	}
 
 	// Parse YAML
-	var config models.Config
+	var config Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 
 	// Validate container definitions
-	if err := validator.ValidateContainers(config.Containers); err != nil {
+	if err := ValidateContainers(config.Containers); err != nil {
 		return nil, err
 	}
 

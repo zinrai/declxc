@@ -1,4 +1,4 @@
-package models
+package main
 
 // User represents a user account configuration for an LXC container
 type User struct {

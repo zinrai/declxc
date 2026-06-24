@@ -1,4 +1,4 @@
-package lxc
+package main
 
 import (
 	"fmt"
@@ -6,12 +6,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-
-	"github.com/zinrai/declxc/pkg/models"
 )
 
 // CreateContainer creates an LXC container using the provided configuration
-func CreateContainer(container models.Container) error {
+func CreateContainer(container Container) error {
 	// Check if the container already exists
 	exists, err := containerExists(container.Name)
 	if err != nil {
@@ -85,7 +83,7 @@ func containerExists(name string) (bool, error) {
 }
 
 // StartContainer starts an LXC container
-func StartContainer(container models.Container) error {
+func StartContainer(container Container) error {
 	// Check if container exists
 	exists, err := containerExists(container.Name)
 	if err != nil {
@@ -109,7 +107,7 @@ func StartContainer(container models.Container) error {
 }
 
 // StopContainer stops an LXC container
-func StopContainer(container models.Container) error {
+func StopContainer(container Container) error {
 	// Check if container exists
 	exists, err := containerExists(container.Name)
 	if err != nil {
@@ -133,7 +131,7 @@ func StopContainer(container models.Container) error {
 }
 
 // DestroyContainer destroys an LXC container
-func DestroyContainer(container models.Container) error {
+func DestroyContainer(container Container) error {
 	cmd := exec.Command("lxc-destroy", "-n", container.Name, "-f")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -146,7 +144,7 @@ func DestroyContainer(container models.Container) error {
 }
 
 // configureNetwork writes network configuration to a separate file and includes it in the main config
-func configureNetwork(container models.Container) error {
+func configureNetwork(container Container) error {
 	// Network config file path
 	containerPath := filepath.Join("/var/lib/lxc", container.Name)
 	networkConfigPath := filepath.Join(containerPath, "config-network")
@@ -204,7 +202,7 @@ lxc.net.%d.flags = up
 }
 
 // configureUsers creates user accounts in the container using chroot
-func configureUsers(container models.Container) error {
+func configureUsers(container Container) error {
 	rootfs := filepath.Join("/var/lib/lxc", container.Name, "rootfs")
 
 	// Check if rootfs exists
@@ -292,7 +290,7 @@ func configureUsers(container models.Container) error {
 }
 
 // configureSudo sets up sudo privileges for a user
-func configureSudo(containerName string, user models.User, rootfs string) error {
+func configureSudo(containerName string, user User, rootfs string) error {
 	if !user.Sudo {
 		return nil
 	}
@@ -319,7 +317,7 @@ func configureSudo(containerName string, user models.User, rootfs string) error 
 }
 
 // configureSSHKeys sets up SSH public keys for a user
-func configureSSHKeys(containerName string, user models.User, rootfs string) error {
+func configureSSHKeys(containerName string, user User, rootfs string) error {
 	sshDir := fmt.Sprintf("/home/%s/.ssh", user.Username)
 	authorizedKeysPath := fmt.Sprintf("%s/authorized_keys", sshDir)
 
@@ -383,7 +381,7 @@ func configureSSHKeys(containerName string, user models.User, rootfs string) err
 }
 
 // configurePackages installs Debian packages in the container using chroot
-func configurePackages(container models.Container) error {
+func configurePackages(container Container) error {
 	rootfs := filepath.Join("/var/lib/lxc", container.Name, "rootfs")
 
 	// Check if rootfs exists

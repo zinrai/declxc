@@ -1,14 +1,12 @@
-package validator
+package main
 
 import (
 	"fmt"
 	"strings"
-
-	"github.com/zinrai/declxc/pkg/models"
 )
 
 // ValidateContainers validates a slice of container definitions
-func ValidateContainers(containers []models.Container) error {
+func ValidateContainers(containers []Container) error {
 	if len(containers) == 0 {
 		return fmt.Errorf("no container definitions found")
 	}
