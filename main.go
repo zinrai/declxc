@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 )
 
 func main() {
@@ -93,20 +92,6 @@ func createContainers(filePath string) error {
 	containers, err := ParseFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to parse YAML file: %w", err)
-	}
-
-	// Resolve SSH key file paths relative to YAML file
-	baseDir := filepath.Dir(filePath)
-	for i := range containers {
-		for j := range containers[i].Users {
-			for k := range containers[i].Users[j].SSHKeyFiles {
-				keyPath := containers[i].Users[j].SSHKeyFiles[k]
-				// If not absolute path, make it relative to YAML file directory
-				if !filepath.IsAbs(keyPath) {
-					containers[i].Users[j].SSHKeyFiles[k] = filepath.Join(baseDir, keyPath)
-				}
-			}
-		}
 	}
 
 	// Create containers
